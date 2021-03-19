@@ -1,18 +1,21 @@
 /*
-从代码来看，webpack异步加载、执行主要流程如下：
+前提：
+将window["webpackJsonp"]的 push 方法替换为 webpackJsonpCallback 进行强化；
+
+webpack异步加载、执行主要流程如下：
 1. 通过调用__webpack_require__.e(chunkId):
 		1. 读取installedChunks是否有缓存? 有，直接将chunk的 promise 添加到 promises 中
 		2. 没有，创建[resolve, reject, promise]数组，存到installedChunks[chunkId]中，用于记录chunk加载状态;
-2. 通过 JSONP 加载异步chunk -- 添加script标签，加载{publicPath + chunkId + ".bundle.js"}文件
-3. 将window["webpackJsonp"]的 push 方法替换为 webpackJsonpCallback 进行强化；
-4. 返回 Promise.all(promises)
-5. then 方法中使用 __webpack_require__ 方法加载并执行添加的模块函数
+		3. 通过 JSONP 加载异步chunk -- 添加script标签，加载{publicPath + chunkId + ".bundle.js"}文件
+		4. 返回Promise.all(promises) 
+2. chunk文件中触发 window["webpackJsonp"] 的 push(webpackJsonpCallback) 方法；
+	1. 根据 chunkId 从 installedChunks 数组中找到状态为 执行中 的标记数组；
+	2. 并将数组中的 resolve 方法添加到 resolves 数组中；
+	3. 并将 installedChunks[chunkId] 对应值置为0，表示加载完成；
+	4. 挨个将异步 chunk 中的 module 加入主 chunk 的 modules 数组中；
+	5. 循环执行 resolves 数组中的 resolve（ 使__webpack_require__.e 的返回值 Promise.all(promises) 得到 resolve ）
+3. then 方法中使用 __webpack_require__(见下方)方法加载并执行添加的模块函数
 
-异步chunk的加载流程：
-1. 调用window["webpackJsonp"]的 push (实为webpackJsonpCallback) 方法: 
-2. 将加载中的 chunk 状态标记成已完成，保存该 chunk 的 resolve 函数；
-3. 并将 chunk 中的模块添加到全局 modules 中；
-4. 循环调用 chunk 的 resolve 方法；
 
 __webpack_require__主要流程：
 1. 通过判断 installedModules[moduleId]，查看模块是否已经缓存；有，直接返回模块的exports
@@ -30,6 +33,11 @@ __webpack_require__主要流程：
 
 (function(modules) { // webpackBootstrap
 	// install a JSONP callback for chunk loading
+	// 1. 根据 chunkId 从 installedChunks 数组中找到状态为 执行中 的标记数组；
+	// 2. 并将数组中的 resolve 方法添加到 resolves 数组中；
+	// 3. 并将 installedChunks[chunkId] 对应值置为0，表示加载完成；
+	// 4. 挨个将异步 chunk 中的 module 加入主 chunk 的 modules 数组中；
+	// 5. 循环执行 resolves 数组中的 resolve（ 使__webpack_require__.e 的返回值 Promise.all(promises) 得到 resolve ）
 	function webpackJsonpCallback(data) {
 		// window["webpackJsonp"] 中的第一个参数——即[0]
 		var chunkIds = data[0];
