@@ -51,7 +51,9 @@ __webpack_require__主要流程：
 			// 标记成已经执行完
 			installedChunks[chunkId] = 0;
 		}
-		// 挨个将异步 chunk 中的 module 加入主 chunk 的 modules 数组中
+
+		// 把异步模块代码都存放到 modules 中
+  	// 此时万事俱备，异步代码都已经同步加载到主模块中
 		for(moduleId in moreModules) {
 			if(Object.prototype.hasOwnProperty.call(moreModules, moduleId)) {
 				modules[moduleId] = moreModules[moduleId];
@@ -60,12 +62,10 @@ __webpack_require__主要流程：
 		// parentJsonpFunction: 原始的数组 push 方法，将 data 加入 window["webpackJsonp"] 数组。
 		// *此处本质是将 push 方法外面包了一层 webpackJsonpCallback 的处理
 		if(parentJsonpFunction) parentJsonpFunction(data);
-		// 等到 while 循环结束后，__webpack_require__.e 的返回值 Promise 得到 resolve
-		// 执行 resolove		
+  	// 重点：执行resolve() = installedChunks[chunkId][0]() 返回 promise
 		while(resolves.length) {
 			resolves.shift()();
 		}
-  
 	};
   
 
@@ -73,6 +73,7 @@ __webpack_require__主要流程：
 	var installedModules = {};
   
 	// object to store loaded and loading chunks
+	// 记录哪些chunk已加载完成
 	var installedChunks = {
 		"main": 0
 	};
@@ -121,6 +122,7 @@ __webpack_require__主要流程：
 				promises.push(installedChunkData[2]);
 			} else {
 				// setup Promise in chunk cache
+				// 把 resolve 保存到 installedChunks[chunkId] 中，等待代码加载好再执行 resolve() 以返回 promise
 				var promise = new Promise(function(resolve, reject) {
 					installedChunkData = installedChunks[chunkId] = [resolve, reject];
 				});
@@ -128,6 +130,7 @@ __webpack_require__主要流程：
   
 				// start chunk loading
 				// 使用 JSONP
+				// 通过往 head 头部插入 script 标签异步加载 chunk 代码
 				var head = document.getElementsByTagName('head')[0];
 				var script = document.createElement('script');
   
@@ -208,7 +211,7 @@ __webpack_require__主要流程：
 	// on error function for async loading
 	__webpack_require__.oe = function(err) { console.error(err); throw err; };
   
-	// 将 push 方法的实现修改为 webpackJsonpCallback
+	// 关键代码： window["webpackJsonp"].push = webpackJsonpCallback
 	// 这样我们在异步 chunk 中执行的 window['webpackJsonp'].push 其实是 webpackJsonpCallback 函数。
 	var jsonpArray = window["webpackJsonp"] = window["webpackJsonp"] || [];
 	var oldJsonpFunction = jsonpArray.push.bind(jsonpArray);
@@ -242,6 +245,8 @@ __webpack_require__主要流程：
 		
 		// 单纯为了演示，就是有条件的时候才去动态加载
 		if (true) {
+			// 关键步骤：__webpack_require__.e其返回promise，表示异步代码都已经加载到主模块了
+      // 接下来像同步一样，直接加载模块
 			__webpack_require__.e(/*! import() */ 0).then(__webpack_require__.bind(null, /*! ./Another.js */ "./src/Another.js")).then(res => console.log(res))
 		}
   
