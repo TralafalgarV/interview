@@ -3,18 +3,18 @@
 将window["webpackJsonp"]的 push 方法替换为 webpackJsonpCallback 进行强化；
 
 webpack异步加载、执行主要流程如下：
-1. 通过调用__webpack_require__.e(chunkId):
+1. 遇到异步模块时，使用__webpack_require__.e函数去把异步代码加载进来。该函数会在html的head中动态增加script标签，src指向指定的异步模块存放的文件：
 		1. 读取installedChunks是否有缓存? 有，直接将chunk的 promise 添加到 promises 中
 		2. 没有，创建[resolve, reject, promise]数组，存到installedChunks[chunkId]中，用于记录chunk加载状态;
 		3. 通过 JSONP 加载异步chunk -- 添加script标签，加载{publicPath + chunkId + ".bundle.js"}文件
 		4. 返回Promise.all(promises) 
-2. chunk文件中触发 window["webpackJsonp"] 的 push(webpackJsonpCallback) 方法；
+2. chunk文件中触发 window["webpackJsonp"] 的 push(webpackJsonpCallback) 方法，把异步模块加载到主文件中；
 	1. 根据 chunkId 从 installedChunks 数组中找到状态为 执行中 的标记数组；
 	2. 并将数组中的 resolve 方法添加到 resolves 数组中；
 	3. 并将 installedChunks[chunkId] 对应值置为0，表示加载完成；
 	4. 挨个将异步 chunk 中的 module 加入主 chunk 的 modules 数组中；
 	5. 循环执行 resolves 数组中的 resolve（ 使__webpack_require__.e 的返回值 Promise.all(promises) 得到 resolve ）
-3. then 方法中使用 __webpack_require__(见下方)方法加载并执行添加的模块函数
+3. 后续可以像同步模块一样,直接使用__webpack_require__("./src/async.js")加载异步模块
 
 
 __webpack_require__主要流程：
@@ -255,7 +255,7 @@ __webpack_require__主要流程：
 		if (true) {
 			// 关键步骤：__webpack_require__.e其返回promise，表示异步代码都已经加载到主模块了
       // 接下来像同步一样，直接加载模块
-			__webpack_require__.e(/*! import() */ 0).then(__webpack_require__.bind(null, /*! ./Another.js */ "./src/Another.js")).then(res => console.log(res))
+			__webpack_require__.e(/*! import() */ 0).then(__webpack_require__.bind(null, /*! ./async.js */ "./src/async.js")).then(res => console.log(res))
 		}
   
   }),

@@ -2,20 +2,20 @@
 // 注意！！！此处的 push 在 main.chunk.js 中换成 webpackJsonpCallback 函数
 (window["webpackJsonp"] = window["webpackJsonp"] || []).push([[0],{
 
-  /***/ "./src/Another.js":
+  /***/ "./src/async.js":
   /*!************************!*\
-    !*** ./src/Another.js ***!
+    !*** ./src/async.js ***!
     \************************/
-  /*! exports provided: Another */
+  /*! exports provided: async */
   /***/ (function(module, __webpack_exports__, __webpack_require__) {
   
   "use strict";
   __webpack_require__.r(__webpack_exports__);
   /* harmony export (binding) */ 
-  __webpack_require__.d(__webpack_exports__, "Another", function() { return Another; });
+  __webpack_require__.d(__webpack_exports__, "async", function() { return say; });
   
-  function Another() {
-    return 'Hi, I am Another Module';
+  function say() {
+    return 'Hi, I am async Module';
   }
   
   /***/ })
